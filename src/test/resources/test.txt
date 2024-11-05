@@ -227,7 +227,7 @@ dept/emp{loc l}(l)^(count(loc) > 1)#(l || 'x') --> [["CHICAGO"], ["DALLAS"], ["N
 //two level hierarchical query: salgrade -> emp
 salgrade[?] {grade, losal, hisal, |[sal >= ^1.2 & sal <= ^1.3]emp{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
 //legacy parent query field reference syntax :1(x)
-salgrade[?] {grade, losal, hisal, |[sal >= :1(2) & sal <= :1(3)]emp{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
+salgrade[?] {grade, losal, hisal, |[sal >= :1(losal) & sal <= :1(3)]emp{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
 salgrade sg[?] {grade, losal, hisal, |[sal >= sg.losal & sal <= sg.hisal]emp{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
 salgrade[?] {grade, losal lo, hisal, |[]emp[sal >= ^1.'lo' & sal <= ^1.'hisal']{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
 salgrade[?] {grade, losal, hisal hi, |[sal >= ^1.losal]emp[sal <= ^1.hi]{ename, sal}} --> 5 --> [[5, 3001, 9999, [["KING", 5000.00]]]]
