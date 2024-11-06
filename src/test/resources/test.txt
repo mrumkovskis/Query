@@ -541,7 +541,8 @@ sql_concat(sql('/*begin comment */'), sql(' '), emp[ename ~~ 'sco%']{ename}, sql
 sql_concat(sql('/*begin comment */'), sql(' '), dummy{1} ++ dummy{2}, sql('/*end comment */')) --> [[1], [2]]
 sql_concat(sql('/*begin comment */'), sql(' '), (dummy{1}), sql('/*end comment */')) --> [[1]]
 sql_concat(`insert into dummy (dummy)`, ` values (100)`) --> [[1]]
-sql_concat(`update dummy set dummy = dummy + 1 `, ` where dummy = 100`) --> [[1]]
+sql_concat(`update dummy set dummy = :dummy + 1 `, ` where dummy = :dummy`) --> dummy=100 --> [[1]]
+//sql_concat(=dummy{dummy}[:dummy], `where dummy = :dummy`) --> dummy=100 --> [[1]] // FIXME does no work - update dummy bind variable is registered in another builder like separate query
 sql_concat(`delete from dummy where dummy = 101`) --> [[1]]
 sql_concat(null_macros(), dummy{1}, null_macros()) --> [[1]]
 dept[deptno in if_defined(:name, emp[ename ~~ :name? || '%']{deptno})]{dname}#(1) --> [["ACCOUNTING"], ["OPERATIONS"], ["RESEARCH"], ["SALES"]]
