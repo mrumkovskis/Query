@@ -290,7 +290,7 @@ class QueryTest extends AnyFunSuite with BeforeAndAfterAll {
     intercept[CompilerException](compiler.compile("+contact_db:contact{name}[:n] {namez}"))
 
     //function only found in child metadata
-    intercept[CompilerException](compiler.compile("emp { concat_ws (', ', ename, job) }"))
+    intercept[CompilerException](compiler.compile("emp { instr (ename, job) }"))
     intercept[CompilerException](compiler.compile("emp { format_tuple_b (ename, job) }"))
   }
 

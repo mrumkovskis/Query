@@ -31,9 +31,43 @@ exists(cond::any)::boolean
 group_concat(what::'*')::string
 //postgres group_concat replacement is string_agg
 string_agg(expr::'*')::any
+
+array(arr::'any*')::any
+array_length(arr::any, dim::int)::int
+cast(value::any)::any
+chr(charCode::int)::string
+concat(str::'any*')::string
+concat_ws(sep::string, str::'any*')::string
 current_date()::date
 current_time()::timestamp
+date(t::timestamp)::date
+date_part (text::string, timestamp::timestamp)::double    // TODO or interval
+date_trunc(text::string, timestamp::timestamp)::timestamp // TODO or interval
+generate_series(a::any, b::any)::any
+generate_series(a::any, b::any, c::any)::any
+greatest(v::'any*')::'$v'
+least(v::'any*')::'$v'
+left(s::string, n::int)::string
+length(s::string)::int
+localtimestamp()::timestamp
+lpad(string::string, length::int, lpad_string::string)::string
+not(b::boolean)::boolean
 now()::timestamp
+nullif(v1::any, v2::any)::'$v1'
+random()::double
+regexp_matches(s::string, rx::string)::boolean
+replace(v::string, from::string, to::string)::string
+right(s::string, n::int)::string
+round(d::double)::int
+round(d::double, i::int)::double
+substring(s::string, n::int)::string
+substring(s::string, n::int, nn::int)::string
+to_char(n::long,      format::string)::string
+to_char(n::long,      format::string)::string
+to_char(t::timestamp, format::string)::string
+to_char(t::timestamp, format::string)::string
+to_number(text::string, format::string)::double
+unnest(arr::'any*')::any
 
 //basic dialect functions
 case(when::any, then, rest::'any*')::'$then'

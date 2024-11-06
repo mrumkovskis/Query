@@ -1,4 +1,5 @@
 include /tresql-function-signatures.txt
 
 //hsqldb
-concat_ws(sep::string, exprs::'string*')::string
+instr(where::string, what::string)::int
+instr(where::string, what::string, from::int)::int
