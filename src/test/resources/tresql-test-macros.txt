@@ -13,3 +13,4 @@ macro_interpolator_noargs_test() = 'no_args'
 concat_exps_test(exps::'*') = concat_exps('{', ',', '}', map_exps('x ' || $exps || ' y'))
 concat_exps_test1(prefix::string, sep::string, postfix::string, exps::'*') =
   concat_exps($prefix, $sep, $postfix, map_exps('x ' || $exps || ' y'))
+identity(exp) = $exp

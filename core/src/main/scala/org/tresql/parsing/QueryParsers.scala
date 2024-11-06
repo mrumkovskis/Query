@@ -74,8 +74,9 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
   def idref: MemParser[IdRef] = ":#" ~> qualifiedIdent ~ opt(":" ~> ident) ^^ {
     case id  ~ mayBeBindVar => IdRef(id.ident.mkString(".") + mayBeBindVar.map(":" + _).getOrElse(""))
   } named "id-ref"
-  def result: MemParser[Res] = ((":" ~> wholeNumber <~ "(") | ("^" ~> wholeNumber <~ ".")) ~
-    (wholeNumber | stringLiteral | qualifiedIdent) <~ opt(")") ^^ {
+  def result: MemParser[Res] = {
+    val resArg = wholeNumber | stringLiteral | qualifiedIdent
+    (((":" ~> wholeNumber <~ "(") ~ resArg <~ opt(")")) | (("^" ~> wholeNumber <~ ".") ~ resArg)) ^^ {
       case r ~ c => Res(r.toInt,
         c match {
           case s: String =>
@@ -83,6 +84,7 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
           case i: Ident => i
         })
     } named "result"
+  }
   def braces: MemParser[Braces] = "(" ~> expr <~ ")" ^^ Braces named "braces"
   /* Function parser must be applied before query because of the longest token
      * matching, otherwise qualifiedIdent of query will match earlier.
