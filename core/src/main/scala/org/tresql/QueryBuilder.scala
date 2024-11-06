@@ -769,7 +769,8 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
         case expr :: tail => findSQL(expr).orElse(findSQLInSeq(tail))
       }
     val cols = findSQL(this).getOrElse(ColsExpr(List(ColExpr(AllExpr(), null)), true, false, false))
-    override def apply() = sel(sql, cols)
+    override def apply() = if (sql.trim.startsWith("insert") || sql.trim.startsWith("update") ||
+      sql.trim.startsWith("delete")) update(sql) else sel(sql, cols)
     def defaultSQL = expr.filter(_ != null).map(_.sql) mkString ""
   }
 
