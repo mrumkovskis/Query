@@ -43,8 +43,7 @@ current_time()::timestamp
 date(t::timestamp)::date
 date_part (text::string, timestamp::timestamp)::double    // TODO or interval
 date_trunc(text::string, timestamp::timestamp)::timestamp // TODO or interval
-generate_series(a::any, b::any)::any
-generate_series(a::any, b::any, c::any)::any
+generate_series(args::'any*')::any
 greatest(v::'any*')::'$v'
 least(v::'any*')::'$v'
 left(s::string, n::int)::string
@@ -68,6 +67,8 @@ to_char(t::timestamp, format::string)::string
 to_char(t::timestamp, format::string)::string
 to_number(text::string, format::string)::double
 unnest(arr::'any*')::any
+json_to_record(json::any)::any
+json_to_recordset(json::any)::any
 
 //basic dialect functions
 case(when::any, then, rest::'any*')::'$then'

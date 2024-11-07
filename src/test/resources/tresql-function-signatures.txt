@@ -1,6 +1,5 @@
 include /tresql-default-function-signatures.txt
 
-concat(string::'string*')::string
 inc_val_5(int::int)::int
 dummy()::any
 dummy_table()::any
@@ -11,18 +10,10 @@ to_char(a::decimal, p::any)::string
 trunc(a::decimal, i::int)::decimal
 trunc(a::decimal)::decimal
 round(a::decimal, i::int)::decimal
-date_part(field::any, source::any)::any
 isfinite(field::any)::any
-unnest(arr::'any*')::any
-json_to_record(json::any)::any
-json_to_recordset(json::any)::any
 sequence_array(el::'any*')::any
-generate_series(args::'any*')::any
-substring(str::string, from::int, length::int)::string
 position(pos::any)::int
 in_out(a::int, b::string, c::string)::unit
 date_add(d::date, interval::any)::date
-//hsqldb
-regexp_matches(s::string, regex::string)::boolean
 //builder macro
 plus(e1::integer, e2::integer)::integer
