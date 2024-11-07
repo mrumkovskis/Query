@@ -10,9 +10,11 @@ private[tresql] object QueryParsers {
     case l: List[_] => l map any2tresql mkString ", "
     case x => x.toString
   }
-}
 
-import QueryParsers.any2tresql
+  def formatType(typ: String): String =
+    if (QueryParsers.simple_ident_regex.pattern.matcher(typ).matches) typ else "'" + typ + "'"}
+
+import QueryParsers.{any2tresql, formatType}
 import org.tresql.metadata.Procedure
 import org.tresql.parsing.ExpTransformer
 
@@ -70,8 +72,7 @@ case class Res(rNr: Int, col: Exp) extends Exp {
   def tresql = "^" + rNr + "." + col.tresql
 }
 case class Cast(exp: Exp, typ: String) extends Exp {
-  def tresql = exp.tresql + "::" +
-    (if (QueryParsers.simple_ident_regex.pattern.matcher(typ).matches) typ else "'" + typ + "'")
+  def tresql = exp.tresql + "::" + formatType(typ)
 }
 case class UnOp(operation: String, operand: Exp) extends Exp {
   def tresql = operation + operand.tresql
@@ -221,7 +222,7 @@ case class Obj(obj: Exp, alias: String = null, join: Join = null, outerJoin: Str
         case FunAsTable(_, cols, ord) =>
           " " + alias +
             cols
-              .map(_.map(c => c.name + c.typ.map("::" + _).getOrElse(""))
+              .map(_.map(c => c.name + c.typ.map(formatType).map("::" + _).mkString)
                 .mkString(if (ord) "(# " else "(", ", ", ")"))
               .getOrElse("")
         case _ => if (alias == null) "" else " " + alias

@@ -14,6 +14,8 @@ round(a::decimal, i::int)::decimal
 date_part(field::any, source::any)::any
 isfinite(field::any)::any
 unnest(arr::'any*')::any
+json_to_record(json::any)::any
+json_to_recordset(json::any)::any
 sequence_array(el::'any*')::any
 generate_series(args::'any*')::any
 substring(str::string, from::int, length::int)::string

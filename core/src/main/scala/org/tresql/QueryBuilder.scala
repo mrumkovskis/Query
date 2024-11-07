@@ -368,7 +368,7 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
   }
 
   case class TableColDefExpr(name: String, typ: Option[String]) extends PrimitiveExpr {
-    override def defaultSQL: String = name
+    override def defaultSQL: String = name + typ.map(" " + _).mkString
   }
 
   case class TableColDefsExpr(cols: List[TableColDefExpr]) extends PrimitiveExpr {

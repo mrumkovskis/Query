@@ -59,6 +59,7 @@ package object dialects {
       case "varchar" => "longvarchar" // size of varchar unknown and required by hsqldb - use longvarchar instead
       case x => x
     }})"
+    case c: QueryBuilder#TableColDefExpr => c.name
     case b: QueryBuilder#BinExpr if b.op == "`~`" => s"regexp_matches(${b.lop.sql}, ${b.rop.sql})"
     case s: QueryBuilder#SelectExpr if s.tables.size == 1 &&
       s.tables.head.table.isInstanceOf[QueryBuilder#ConstExpr] &&
@@ -141,6 +142,8 @@ package object dialects {
   val PostgresqlRawDialect: CoreTypes.Dialect = {
     case c: QueryBuilder#ColExpr if c.alias != null => Option(c.col).map(_.sql).getOrElse("null") + " as " + c.alias
     case c: QueryBuilder#CastExpr => c.exp.sql + "::" + c.builder.env.metadata.to_sql_type("postgresql", c.typ)
+    case c: QueryBuilder#TableColDefExpr => c.name +
+      c.typ.map(t => c.builder.env.metadata.to_sql_type("postgresql", t)).map(" " + _).mkString
     case v: QueryBuilder#VarExpr if is_sql_array(v) =>
       v.defaultSQL // register bind variable
       s"array[${sql_arr_bind_vars(v())}]"
