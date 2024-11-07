@@ -76,7 +76,7 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
   } named "id-ref"
   def result: MemParser[Res] = {
     val resArg = wholeNumber | stringLiteral | qualifiedIdent
-    (((":" ~> wholeNumber <~ "(") ~ resArg <~ opt(")")) | (("^" ~> wholeNumber <~ ".") ~ resArg)) ^^ {
+    ((("^" ~> wholeNumber <~ ".") ~ resArg) | ((":" ~> wholeNumber <~ "(") ~ resArg <~ opt(")"))) ^^ {
       case r ~ c => Res(r.toInt,
         c match {
           case s: String =>
