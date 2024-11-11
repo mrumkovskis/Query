@@ -264,6 +264,7 @@ class PGQueryTest extends AnyFunSuite with BeforeAndAfterAllConfigMap {
     intercept[CompilerException](compiler.compile("dept{group_concat(dname)#(dname)[deptno{deptno} < 30]}"))
     intercept[CompilerException](compiler.compile("{dept[10]{dnamez}}"))
     intercept[CompilerException](compiler.compile("b(# y) {a{x}}, a(# x) {dummy{dummy}} b{y}"))
+    intercept[CompilerException](compiler.compile("emp/dept#(dzidzis){dname, ename, sal}#(dname, ~sal)"))
   }
 
   if (executePGCompilerMacroDependantTests) test("postgres compiler macro") {
@@ -287,6 +288,7 @@ class PGQueryTest extends AnyFunSuite with BeforeAndAfterAllConfigMap {
     implicit lazy val tableDefCodec: Codec[TableDef] = deriveCodec[TableDef] // TODO
     implicit lazy val identCodec: Codec[Ident] = deriveCodec[Ident] // TODO
     implicit lazy val arrCodec: Codec[Arr] = deriveCodec[Arr] // TODO
+    implicit lazy val distinctCodec: Codec[Distinct] = deriveCodec[Distinct] // TODO
     implicit lazy val colCodec: Codec[Col] = deriveCodec[Col] // TODO
     implicit lazy val colsCodec: Codec[Cols] = deriveCodec[Cols] // TODO
     implicit lazy val deleteCodec: Codec[Delete] = deriveCodec[Delete] // TODO

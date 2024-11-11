@@ -306,7 +306,7 @@ trait Compiler extends QueryParsers { thisCompiler =>
           Query(
             tables = Nil,
             filter = filter,
-            cols = null,
+            cols = Cols(Nil, Option(q.cols).map(_.distinct).orNull),
             group = grp,
             order = ord,
             limit = limit,
@@ -549,6 +549,7 @@ trait Compiler extends QueryParsers { thisCompiler =>
           prevTable = t
         }
         sd.cols foreach namer(nctx)
+        namer(nctx)(sd.exp.cols.distinct)
         namer(nctx)(sd.exp.filter)
         val grpOrdCtx = nctx.copy(isGrpOrd = true)
         Option(sd.exp.group).foreach { g =>

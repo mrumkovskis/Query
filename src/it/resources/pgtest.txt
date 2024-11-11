@@ -463,6 +463,8 @@ dummy[dummy in (dummy[dummy = :dummy?]{dummy} ++ dummy[dummy = 1]{dummy})] --> [
 
 //distinct
 (dept{deptno} ++ dept{deptno})d#{deptno}#(1) --> [[10], [20], [30], [40]]
+//distinct on
+emp/dept#(dname){dname, ename, sal}#(dname, ~sal) -->  [["ACCOUNTING", "KING", 5000.00], ["RESEARCH", "FORD", 3000.00], ["SALES", "BLAKE", 2850.00]]
 
 //braces test
 dept[deptno = ((? + ?) * ((? - ?) / (?)))] {deptno} --> 2; 3; 6; 2; 2 --> [[10]]

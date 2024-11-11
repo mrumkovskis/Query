@@ -406,10 +406,10 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
   }
 
   case class SelectExpr(tables: List[Table], filter: Expr, cols: ColsExpr,
-      distinct: Boolean, group: Expr, order: Expr,
+      distinct: DistinctExpr, group: Expr, order: Expr,
       offset: Expr, limit: Expr, aliases: Map[String, Table], parentJoin: Option[Expr]) extends BaseExpr {
     override def apply() = sel(sql, cols)
-    def defaultSQL = "select " + (if (distinct) "distinct " else "") +
+    def defaultSQL = "select " + (if (distinct != null) distinct.sql + " " else "") +
       cols.sql +
       (tables match {
         case List(Table(ConstExpr(Null), _, _, _, _, _)) => ""
@@ -526,6 +526,10 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
       macroEliminatedIdxs: Set[Int] = Set()) extends PrimitiveExpr {
     override def defaultSQL =  cols.withFilter(!_.separateQuery).map(_.sql).mkString(", ")
     override def toString = cols.map(_.toString).mkString("Columns(", ", ", ")")
+  }
+  case class DistinctExpr(on: List[Expr]) extends PrimitiveExpr {
+    override def defaultSQL: String = "distinct " +
+      (if (on.isEmpty) "" else on.map(_.sql).mkString("on (", ",", ")"))
   }
   case class ColExpr(col: Expr, alias: String, sepQuery: Option[Boolean] = None, hidden: Boolean = false)
     extends PrimitiveExpr {
@@ -809,7 +813,7 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
     SelectExpr(
       List(Table(ConstExpr(Null), null, null, null, true, null)),
       null, ColsExpr(List(ColExpr(expr, null, Some(false))), false, false, false),
-      false, null, null, null, null, Map(), None
+      null, null, null, null, null, Map(), None
     )
   }
 
@@ -894,7 +898,7 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
       traverserExtractor
     }
     val allColsExtractor: PartialFunction[Exp, List[IdentExpr]] = {
-      case Cols(_, cols) =>
+      case Cols(cols, _) =>
         cols.zipWithIndex.map { case (col, idx) =>
           Option(col.alias).map(n => IdentExpr(List(n.toLowerCase))).getOrElse {
             col.col match {
@@ -905,11 +909,10 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
             }
           }
         }
-
     }
     val valCountExtractor: PartialFunction[Exp, Int] = {
       case Arr(els) => els.size
-      case Cols(_, cols) => cols.size
+      case Cols(cols, _) => cols.size
     }
     /* must be lazy val since evaluation changes builder state and must be called in proper place constructing InsertExpr */
     lazy val colExprs = cols match {
@@ -1102,7 +1105,8 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
       if (ctx == QUERY_CTX && this.tableDefs == Nil) this.tableDefs = defs(tablesAndAliases._1)
       val filter = if (q.filter == null) null else buildFilter(tablesAndAliases._1.last, q.filter.filters)
       val cols = buildCols(q.cols, ctx)
-      val distinct = q.cols != null && q.cols.distinct
+      val distinct =
+        if (q.cols != null) buildInternal(q.cols.distinct, COL_CTX).asInstanceOf[DistinctExpr] else null
       val group = buildInternal(q.group, GROUP_CTX)
       val order = buildInternal(q.order, ORD_CTX)
       val offset = buildInternal(q.offset, LIMIT_CTX)
@@ -1451,6 +1455,7 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
           val ce = if (e == null) null else ColExpr(e, a) // ColExpr constructor uses separateQueryFlag value
           separateQueryFlag = false
           ce
+        case Distinct(on) => DistinctExpr(on.map(buildInternal(_, parseCtx)))
         case Grp(cols, having) => Group(cols map { buildInternal(_, GROUP_CTX) },
           buildInternal(having, HAVING_CTX))
         case Ord(cols) => Order(cols map { c =>

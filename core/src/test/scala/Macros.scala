@@ -34,7 +34,7 @@ class Macros extends org.tresql.Macros {
 
   def build_values_cursor(p: parsing.QueryParsers, data: Exp): Exp = {
     def withQ(q: Exp) = {
-      val sel = PQuery(List(Obj(Null)), Filters(Nil), Cols(false, List(Col(IntConst(0)))))
+      val sel = PQuery(List(Obj(Null)), Filters(Nil), Cols(List(Col(IntConst(0))), null))
       With(List(WithTable("int_values", List("value"), false, sel)), q)
     }
 
@@ -78,7 +78,7 @@ class Macros extends org.tresql.Macros {
           b.SelectExpr(List(
             b.Table(b.ConstExpr(ast.Null), null, b.TableJoin(false, null, true, null), null, false, null)),
             filter, b.ColsExpr(List(b.ColExpr(value(i), "value")), false, false, false),
-            false, null, null, null, null, Map(), None
+            null, null, null, null, null, Map(), None
           )
 
         def union(e1: Expr, e2: Expr) = b.BinExpr("++", e1, e2)

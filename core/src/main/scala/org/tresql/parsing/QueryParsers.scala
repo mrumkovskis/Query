@@ -250,8 +250,10 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
         case r => r
       }
     } named "column"
-  def columns: MemParser[Cols] = (opt("#") <~ "{") ~ rep1sep(column, ",") <~ "}" ^^ {
-    case d ~ c => Cols(d.isDefined, c)
+  def distinct: MemParser[Distinct] = ("#" ~> opt("(" ~> rep1sep(expr, ",") <~ ")")) ^^
+    (on => Distinct(on.getOrElse(Nil))) named "distinct"
+  def columns: MemParser[Cols] = (opt(distinct) <~ "{") ~ rep1sep(column, ",") <~ "}" ^^ {
+    case d ~ c => Cols(c, d.orNull)
   } named "columns"
   def group: MemParser[Grp] = ("(" ~> rep1sep(expr, ",") <~ ")") ~
     opt(("^" ~ "(") ~> expr <~ ")") ^^ { case g ~ h => Grp(g, if (h.isEmpty) null else h.get) }  named "group"

@@ -232,8 +232,11 @@ case class Obj(obj: Exp, alias: String = null, join: Join = null, outerJoin: Str
 case class Col(col: Exp, alias: String = null) extends Exp {
   def tresql = any2tresql(col) + (if (alias != null) " " + alias else "")
 }
-case class Cols(distinct: Boolean, cols: List[Col]) extends Exp {
-  def tresql = (if (distinct) "#" else "") + cols.map(_.tresql).mkString("{", ",", "}")
+case class Distinct(on: List[Exp]) extends Exp {
+  def tresql: String = "#" + (if (on.isEmpty) "" else on.map(_.tresql).mkString("(", ", ", ")"))
+}
+case class Cols(cols: List[Col], distinct: Distinct = null) extends Exp {
+  def tresql = (if (distinct == null) "" else distinct.tresql) + cols.map(_.tresql).mkString("{", ",", "}")
 }
 case class Grp(cols: List[Exp], having: Exp = null) extends Exp {
   def tresql = "(" + cols.map(any2tresql).mkString(",") + ")" +
@@ -457,7 +460,7 @@ object CompilerAst {
       case q: Query =>
         /* FIXME distinct keyword is lost in Cols */
         q.copy(tables = this.tables.map(_.exp),
-          cols = Cols(distinct = false, this.cols.map(c => Col(c.exp, c.name)))).tresql
+          cols = Cols(this.cols.map(c => Col(c.exp, c.name)), null)).tresql
       case x => x.tresql
     }
   }

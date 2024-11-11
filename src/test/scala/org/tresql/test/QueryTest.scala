@@ -343,6 +343,7 @@ class QueryTest extends AnyFunSuite with BeforeAndAfterAll {
     implicit lazy val identCodec:         Codec[Ident]          = deriveCodec    [Ident]         // TODO
     implicit lazy val arrCodec:           Codec[Arr]            = deriveCodec    [Arr]           // TODO
     implicit lazy val colCodec:           Codec[Col]            = deriveCodec    [Col]           // TODO
+    implicit lazy val distinctCodec:      Codec[Distinct]       = deriveCodec    [Distinct]      // TODO
     implicit lazy val colsCodec:          Codec[Cols]           = deriveCodec    [Cols]          // TODO
     implicit lazy val deleteCodec:        Codec[Delete]         = deriveCodec    [Delete]        // TODO
     implicit lazy val colDefCodec:        Codec[ColDef]         = deriveCodec    [ColDef]        // TODO
