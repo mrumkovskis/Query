@@ -278,7 +278,9 @@ trait Query extends QueryBuilder with TypedQuery {
         case a: Array[_] =>
           if (allowArrBind) bindColl(a.toSeq)
           else bindArr(st, a, idx) // unable to construct sql array since type is unknown
-        case o: Option[_] => bindColl(o.orElse(Some(null)).toSeq)
+        case o: Option[_] =>
+          bindVar(allowArrBind, o.orNull)
+          idx -= 1
         case i: scala.collection.Iterable[_] =>
           if (allowArrBind) bindColl(i)
           else st.setString(idx, toJsonString(i)) // convert complex object to json string for not to fail
