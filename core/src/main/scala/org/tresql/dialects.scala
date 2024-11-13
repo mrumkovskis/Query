@@ -35,6 +35,7 @@ package object dialects {
   }
 
   def commonDialect(vendor: String): CoreTypes.Dialect = {
+    case _: QueryBuilder#SQLVendorExpr => vendor
     case f: QueryBuilder#FunExpr
       if f.name == "cast" && f.params.size == 2 && f.params(1).isInstanceOf[QueryBuilder#ConstExpr] =>
       s"cast(${f.params(0).sql} as ${f.builder.env.metadata.to_sql_type(vendor,
@@ -51,9 +52,6 @@ package object dialects {
       val b = f.builder
       val List(b.ConstExpr(seq: String)) = f.params
       "next value for " + seq
-    case v: QueryBuilder#VarExpr if is_sql_array(v) =>
-      v.defaultSQL // register bind variable
-      s"array[${sql_arr_bind_vars(v())}]"
     case c: QueryBuilder#CastExpr => s"cast(${c.exp.sql} as ${c.builder.env.metadata.to_sql_type("hsqldb", c.typ) match {
       case "varchar array" => "longvarchar array" // size of varchar unknown and required by hsqldb - use longvarchar instead
       case "varchar" => "longvarchar" // size of varchar unknown and required by hsqldb - use longvarchar instead
@@ -144,9 +142,6 @@ package object dialects {
     case c: QueryBuilder#CastExpr => c.exp.sql + "::" + c.builder.env.metadata.to_sql_type("postgresql", c.typ)
     case c: QueryBuilder#TableColDefExpr => c.name +
       c.typ.map(t => c.builder.env.metadata.to_sql_type("postgresql", t)).map(" " + _).mkString
-    case v: QueryBuilder#VarExpr if is_sql_array(v) =>
-      v.defaultSQL // register bind variable
-      s"array[${sql_arr_bind_vars(v())}]"
     case f: QueryBuilder#FunExpr if f.name == "decode" && f.params.size > 2 =>
       f.params.tail.grouped(2).map { g =>
         if (g.size == 2) s"when ${g(0).sql} then ${g(1).sql}"
@@ -184,19 +179,6 @@ package object dialects {
           ).defaultSQL
         case _ => i.defaultSQL
       }
-  }
-
-  def is_sql_array(variable: QueryBuilder#VarExpr): Boolean = !variable.allowArrBind && {
-    val value = variable()
-    !value.isInstanceOf[Array[Byte]] && value.isInstanceOf[Array[_]] || value.isInstanceOf[Iterable[_]]
-  }
-  def sql_arr_bind_vars(value: Any) = {
-    def sql(i: Iterable[_]) = i.iterator.map(_ => "?").mkString(", ")
-    value match {
-      case a: Array[_] => sql(a.toSeq)
-      case i: Iterable[_] => sql(i)
-      case x => sys.error(s"Cannot make bind vars string from $x, iterable needed")
-    }
   }
 
   def HSQLDialect: CoreTypes.Dialect =

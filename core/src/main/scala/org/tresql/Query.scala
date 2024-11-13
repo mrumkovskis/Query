@@ -3,6 +3,9 @@ package org.tresql
 import java.sql.{CallableStatement, PreparedStatement, ResultSet, SQLException}
 import CoreTypes.RowConverter
 import org.tresql.ast.Exp
+import org.tresql.metadata.TypeMapper
+
+import scala.annotation.tailrec
 
 trait Query extends QueryBuilder with TypedQuery {
 
@@ -209,6 +212,7 @@ trait Query extends QueryBuilder with TypedQuery {
   }
 
   private def statement(sql: String, env: Env, call: Boolean = false) = {
+    log(sql, registeredBindVariables)
     val conn = env.conn
     if (conn == null) throw new NullPointerException(
       """Connection not found in environment.""")
@@ -225,7 +229,6 @@ trait Query extends QueryBuilder with TypedQuery {
     if (env.queryTimeout > 0) st.setQueryTimeout(env.queryTimeout)
     if (env.fetchSize > 0) st.setFetchSize(env.fetchSize)
 
-    log(sql, registeredBindVariables)
     val bindValues = registeredBindVariables.map {
       case v: QueryBuilder#VarExpr  => (v.allowArrBind, v())
       case e                        => (false,          e())
@@ -273,14 +276,12 @@ trait Query extends QueryBuilder with TypedQuery {
         case ar: java.sql.Array => st.setArray(idx, ar)
         //array binding
         case a: Array[_] =>
-//          if (allowArrBind)
-          bindColl(a.toSeq)
-//          else bindArr(st, a, idx) // unable to construct sql array since type is unknown
+          if (allowArrBind) bindColl(a.toSeq)
+          else bindArr(st, a, idx) // unable to construct sql array since type is unknown
         case o: Option[_] => bindColl(o.orElse(Some(null)).toSeq)
         case i: scala.collection.Iterable[_] =>
-//          if (allowArrBind)
-            bindColl(i)
-//          else bindArr(st, i, idx) // unable to construct sql array since type is unknown
+          if (allowArrBind) bindColl(i)
+          else st.setString(idx, toJsonString(i)) // convert complex object to json string for not to fail
         case p@InOutPar(v) =>
           bindVar(allowArrBind, v)
           idx -= 1
@@ -302,14 +303,23 @@ trait Query extends QueryBuilder with TypedQuery {
       i.foreach(bindVar(true, _))
       idx -= 1
     }
-    def bindArr(st: java.sql.PreparedStatement, value: Any, idx: Int) = {
-      val conn = st.getConnection
-      val arr = value match {
-        case a: Array[_] => a
-        case i: Iterable[_] => i.toArray[Any]
-        case _ => sys.error(s"Unexpected value, cannot bind array: $value")
+    def bindArr(st: java.sql.PreparedStatement, value: Array[_], idx: Int) = {
+      def normalizeArr(arr: Array[_]) = arr match {
+        case a: Array[BigDecimal] => a.map(_.bigDecimal)
+        case a: Array[BigInt] => a.map(_.bigInteger)
+        case a: Array[java.util.Date] => a.map(d => new java.sql.Timestamp(d.getTime))
+        case a: Array[java.util.Calendar] => a.map(c => new java.sql.Timestamp(c.getTime.getTime))
+        case a: Array[java.time.LocalDate] => a.map(java.sql.Date.valueOf)
+        case a: Array[java.time.LocalDateTime] => a.map(java.sql.Timestamp.valueOf)
+        case a: Array[java.time.LocalTime] => a.map(java.sql.Time.valueOf)
+        case a => a
       }
-      val bv = conn.createArrayOf("array", arr.asInstanceOf[Array[Object]])
+      val conn = st.getConnection
+      val vendor = env.dialect(SQLVendorExpr())
+      val arrayScalaType = Manifest.classType(value.getClass.getComponentType).toString
+      val arraySqlType = env.metadata
+        .to_sql_type(vendor, env.metadata.from_jdbc_type(TypeMapper.scalaToJdbc(arrayScalaType)))
+      val bv = conn.createArrayOf(arraySqlType, normalizeArr(value).asInstanceOf[Array[Object]])
       st.setArray(idx, bv)
     }
 
@@ -370,6 +380,76 @@ trait Query extends QueryBuilder with TypedQuery {
         .mkString("[", ", ", "]"),
       Nil, LogTopic.params
     )
+  }
+
+  // TODO make this method accessible to resources for unknown type binding customization
+  private def toJsonString(value: Any) = {
+    def dumpJson(value: Any, sb: StringBuilder): Unit = value match {
+      case m: Map[String @unchecked, _] =>
+        sb.append('{')
+        printSeq(m, sb.append(',')) { m =>
+          printString(m._1, sb)
+          sb.append(':')
+          dumpJson(m._2, sb)
+        }
+        sb.append('}')
+      case seq: Seq[_] =>
+        sb.append('[')
+        printSeq(seq, sb.append(','))(dumpJson(_, sb))
+        sb.append(']')
+      case s: String => printString(s, sb)
+      case n: Number => sb.append(n)
+      case b: Boolean => sb.append(b)
+      case x => printString(String.valueOf(x), sb)
+    }
+    // copied from spray.json.JsonPrinter to avoid dependency
+    def printString(s: String, sb: StringBuilder): Unit = {
+      @tailrec def firstToBeEncoded(ix: Int = 0): Int =
+        if (ix == s.length) -1 else if (requiresEncoding(s.charAt(ix))) ix else firstToBeEncoded(ix + 1)
+      sb.append('"')
+      firstToBeEncoded() match {
+        case -1 => sb.append(s)
+        case first =>
+          sb.append(s, 0, first)
+          @tailrec def append(ix: Int): Unit =
+            if (ix < s.length) {
+              s.charAt(ix) match {
+                case c if !requiresEncoding(c) => sb.append(c)
+                case  '"' => sb.append("\\\"")
+                case '\\' => sb.append("\\\\")
+                case '\b' => sb.append("\\b")
+                case '\f' => sb.append("\\f")
+                case '\n' => sb.append("\\n")
+                case '\r' => sb.append("\\r")
+                case '\t' => sb.append("\\t")
+                case x if x <= 0xF => sb.append("\\u000").append(Integer.toHexString(x))
+                case x if x <= 0xFF => sb.append("\\u00").append(Integer.toHexString(x))
+                case x if x <= 0xFFF => sb.append("\\u0").append(Integer.toHexString(x))
+                case x => sb.append("\\u").append(Integer.toHexString(x))
+              }
+              append(ix + 1)
+            }
+          append(first)
+      }
+      sb.append('"')
+    }
+    def printSeq[A](iterable: Iterable[A], printSeparator: => Unit)(f: A => Unit): Unit = {
+      var first = true
+      iterable.foreach { a =>
+        if (first) first = false else printSeparator
+        f(a)
+      }
+    }
+    def requiresEncoding(c: Char): Boolean =
+      c match {
+        case '"'  => true
+        case '\\' => true
+        case c    => c < 0x20
+      }
+
+    val sb = new StringBuilder
+    dumpJson(value, sb)
+    sb.toString
   }
 }
 

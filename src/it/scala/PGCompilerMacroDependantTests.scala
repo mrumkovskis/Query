@@ -242,7 +242,8 @@ class PGCompilerMacroDependantTests extends AnyFunSuite with PGCompilerMacroDepe
     }
     assertResult(List("x", "y")) {
       Query("=results [id = 49] { names = :a::'text[]', scores = :b::'decimal[]'}")(
-        implicitly[Resources].withParams(Map("a" -> List("x", "y"), "b" -> List(1,2,3)))
+        implicitly[Resources].withParams(Map("a" -> Array("x", "y"),
+          "b" -> Array[java.lang.Integer/*must be castable to Array[Object] for java.sql.Array binding*/](1,2,3)))
       )
       // do not choose scores because java.math.BigDecimal cannot be compared with Int
       tresql"results[id = 49] {names, scores}".map(r => r.names.getArray.asInstanceOf[Array[_]].toList).toList.head

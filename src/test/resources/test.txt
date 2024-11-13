@@ -41,7 +41,7 @@ TYRES + [1, 3333, "MICHELIN", "S"] --> [[1]]
 +TYRES { NR = 2, CARNR = 3333, BRAND = ?, SEASON = :season } --> 'NOKIAN; season='W --> [[1]]
 
 //RESULTS
-+results {id = ?, scores = ?, names = ?} --> 49; {1,2,3}::DECIMAL; {'A, 'B, 'C}::VARCHAR --> [[1]]
++results {id = ?, scores = ?, names = ?} --> 49; [1,2,3]::scala.math.BigDecimal; ['A, 'B, 'C]::java.lang.String --> [[1]]
 
 //CAR TYRES
 CAR[3333] {TYRES_NR} = [2] --> [[1]]
@@ -715,9 +715,9 @@ dept [deptno = 60] {dname, |dept_equipment{equipment}} --> [["D6", [["EQ6"]]]]
 
 // sql array
 results { names, scores }#(1) --> [[["A", "B", "C"], [1, 2, 3]]]
-=results [id = 49] { names = ?, scores = ? } --> []; [] --> [[1]]
+=results [id = 49] { names = ?, scores = ? } --> []::java.lang.String; []::scala.math.BigDecimal --> [[1]]
 results { names, scores }#(1) --> [[[], []]]
-=results [id = 49] { names = ?, scores = ? } --> {'D}::varchar; {4}::decimal --> [[1]]
+=results [id = 49] { names = ?, scores = ? } --> ['D]::java.lang.String; [4]::scala.math.BigDecimal --> [[1]]
 results { names, scores }#(1) --> [[["D"], [4]]]
 
 // another schema test

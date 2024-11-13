@@ -786,6 +786,9 @@ trait QueryBuilder extends EnvProvider with org.tresql.Transformer with Typer { 
   case class DeferredBuildPlaceholderExpr(exp: Exp) extends PrimitiveExpr {
     def defaultSQL = s"DeferredBuildPlaceholderExpr(${exp.tresql})"
   }
+  case class SQLVendorExpr() extends PrimitiveExpr {
+    def defaultSQL = "<unknown>"
+  }
 
   abstract class BaseExpr extends PrimitiveExpr {
     override def apply(params: Map[String, Any]): Any = {

@@ -91,8 +91,7 @@ class QueryTest extends AnyFunSuite with BeforeAndAfterAll {
       val D = """(\d{4}-\d{1,2}-\d{1,2})""".r
       val T = """(\d{4}-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}:\d{1,2})""".r
       val N = """(-?\d+(\.\d*)?|\d*\.\d+)""".r
-      val A = """\[(.*)\]""".r
-      val SA = """\{(.*)\}::([^;]+)""".r
+      val A = """\[(.*)\](::([^;]+))?""".r
       val VAR = """(\w+)\s*=\s*(.+)""".r
       var map = false
       def par(p: String): Any = p.trim match {
@@ -104,16 +103,17 @@ class QueryTest extends AnyFunSuite with BeforeAndAfterAll {
         case D(d) => DF.parse(d)
         case T(t) => TF.parse(t)
         case N(n,_) => BigDecimal(n)
-        case A(ac) =>
-          if (ac.isEmpty) List()
-          else ac.split(",").map(par).toList
-        case SA(els, typ) =>
-          val arr: Array[AnyRef] =
-            if (els.isEmpty) Array()
-            else els.split(",").map(par).map { case bd: BigDecimal => bd.bigDecimal case x => x }
-              .asInstanceOf[Array[AnyRef]]
-          conn.createArrayOf(typ, arr)
-        case x => error("unparseable parameter: " + x)
+        case A(ac, _, typ) =>
+          if (typ == null) {
+            if (ac.isEmpty) List()
+            else ac.split(",").map(par).toList
+          } else {
+            val values = if (ac.isEmpty) new Array(0) else ac.split(",").map(par)
+            val arr = java.lang.reflect.Array.newInstance(Class.forName(typ), values.length)
+            values.zipWithIndex.foreach { case (v, i) => java.lang.reflect.Array.set(arr, i, v) }
+            arr
+          }
+        case x => error(s"unparseable parameter: '$x'")
       }
       val pl = pars.split(sep).map(par).toList
       if (map) {

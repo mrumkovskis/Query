@@ -19,7 +19,7 @@ trait TypeMapper {
     "integer"      -> Map("sql" -> "numeric"),
     "long"         -> Map("oracle" -> "numeric(18)", "sql" -> "bigint"),
     "short"        -> Map("sql" -> "smallint"),
-    "string"       -> Map("sql" -> "clob", "oracle" -> "varchar2", "postgresql" -> "text", "hsqldb" -> "longvarchar"),
+    "string"       -> Map("sql" -> "clob", "oracle" -> "varchar2", "postgresql" -> "text", "hsqldb" -> "varchar"),
     "text"         -> Map("sql" -> "clob", "oracle" -> "varchar2", "postgresql" -> "text", "hsqldb" -> "longvarchar"),
   )
 
@@ -104,10 +104,10 @@ trait TypeMapper {
 object TypeMapper {
   def scalaToJdbc(scalaTypeName: String): Int = scalaTypeName match {
     case "Array[Byte]"              => Types.VARBINARY
-    case "Boolean"                  => Types.BOOLEAN
-    case "Double"                   => Types.DOUBLE
-    case "Float"                    => Types.REAL
-    case "Int"                      => Types.INTEGER
+    case "Boolean" | "boolean"      => Types.BOOLEAN
+    case "Double" | "double"        => Types.DOUBLE
+    case "Float" | "float"          => Types.REAL
+    case "Int" | "int"              => Types.INTEGER
     case "java.io.InputStream"      => Types.LONGVARBINARY
     case "java.io.Reader"           => Types.LONGVARCHAR
     case "java.lang.Boolean"        => Types.BOOLEAN
@@ -129,10 +129,10 @@ object TypeMapper {
     case "java.time.LocalDateTime"  => Types.TIMESTAMP
     case "java.time.LocalTime"      => Types.TIME
     case "java.util.Date"           => Types.TIMESTAMP
-    case "Long"                     => Types.BIGINT
+    case "Long" | "long"            => Types.BIGINT
     case "scala.math.BigDecimal"    => Types.DECIMAL
     case "scala.math.BigInt"        => Types.NUMERIC
-    case "Short"                    => Types.SMALLINT
+    case "Short" | "short"          => Types.SMALLINT
     case "String"                   => Types.VARCHAR
     case _                          => Types.OTHER
   }
