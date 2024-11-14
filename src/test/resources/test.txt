@@ -534,6 +534,7 @@ dept/emp[dept.deptno = 10][mgr = null]{dname, ename}#(1, 2) --> [["ACCOUNTING", 
 //macro test
 {sql("date '2012-02-29' + 1 month")} --> [["2012-03-29"]]
 {`date '2012-02-29' + 1 month`} --> [["2012-03-29"]]
+[]`unnest(sequence_array(10, 12, 1))` a(x) [x = 10] { a.x } --> [[10]]
 sql_concat(sql('/*begin comment */'), sql(' '), sql_concat(emp[ename ~~ 'sco%']{ename}, sql('/*end comment */'))) --> [["SCOTT"]]
 sql_concat(sql('/*begin comment */'), sql(' '), sql_concat(dummy{1} ++ dummy{2}, sql('/*end comment */'))) --> [[1], [2]]
 sql_concat(sql('/*begin comment */'), sql(' '), sql_concat((dummy{1}), sql('/*end comment */'))) --> [[1]]

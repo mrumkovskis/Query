@@ -59,7 +59,9 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
     case i: Int => IntConst(i)
     case x => sys.error(s"Unexpected const value: '$x'. Expected `String` or `Boolean` or `BigDecimal` or `Int`")
   } named "const"
-  def sql: MemParser[Sql] = "`" ~> ("[^`]+"r) <~ "`" ^^ Sql named "sql"
+  def sql: MemParser[Fun] = "`" ~> ("[^`]+"r) <~ "`" ^^ { sql_str =>
+    Fun("sql", List(StringConst(sql_str)), false, None, None)
+  } named "sql"
   def qualifiedIdent: MemParser[Ident] = rep1sep(ident, ".") ^^ Ident named "qualified-ident"
   def qualifiedIdentAll: MemParser[IdentAll] = qualifiedIdent <~ ".*" ^^ IdentAll named "ident-all"
   def variable: MemParser[Variable] = ((":" ~> (
@@ -93,8 +95,8 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
      * of the query.
      * insert, delete, update parsers must be applied before query parser
      * result parser must be applied before variable parser */
-  def operand: MemParser[Exp] = (const | ALL | withQuery | function | insert | update | result |
-    variable | query | id | idref  | array | sql) named "operand"
+  def operand: MemParser[Exp] = (const | ALL | withQuery | function  | sql | insert | update | result |
+    variable | query | id | idref  | array) named "operand"
   /* function(<#> <arglist> <order by>). Maybe used in from clause so filter is not confused with join syntax.  */
   def functionWithoutFilter: MemParser[Fun] = (qualifiedIdent /* name */ <~ "(") ~
     opt("#") /* distinct */ ~ repsep(expr, ",") /* arglist */ ~
@@ -142,7 +144,7 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
   def filters: MemParser[Filters] = rep(filter) ^^ Filters named "filters"
   /** objContent is meant to be table, column or division operation operand */
   private def objContent: MemParser[Exp] =
-    (const | functionWithoutFilter | result | variable | qualifiedIdent | braces) named "obj-content"
+    (const | functionWithoutFilter | result | variable | qualifiedIdent | sql | braces) named "obj-content"
   private def alias: MemParser[(String, Option[List[TableColDef]], Boolean)] =
     ident ~ opt("(" ~> opt("#") ~ rep1sep(ident ~ opt(cast), ",") <~ ")") ^^ {
       case id ~ Some(mbOrd ~ colDefs) =>

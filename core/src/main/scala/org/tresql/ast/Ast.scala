@@ -45,9 +45,6 @@ case class StringConst(value: String) extends Const {
 case class BigDecimalConst(value: BigDecimal) extends Const
 case class BooleanConst(value: Boolean) extends Const
 
-case class Sql(sql: String) extends Exp {
-  def tresql = s"`$sql`"
-}
 case class Ident(ident: List[String]) extends Exp {
   def tresql = ident.mkString(".")
 }
