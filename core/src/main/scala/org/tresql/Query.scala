@@ -307,13 +307,13 @@ trait Query extends QueryBuilder with TypedQuery {
     }
     def bindArr(st: java.sql.PreparedStatement, value: Array[_], idx: Int) = {
       def normalizeArr(arr: Array[_]) = arr match {
-        case a: Array[BigDecimal] => a.map(_.bigDecimal)
-        case a: Array[BigInt] => a.map(_.bigInteger)
-        case a: Array[java.util.Date] => a.map(d => new java.sql.Timestamp(d.getTime))
-        case a: Array[java.util.Calendar] => a.map(c => new java.sql.Timestamp(c.getTime.getTime))
-        case a: Array[java.time.LocalDate] => a.map(java.sql.Date.valueOf)
-        case a: Array[java.time.LocalDateTime] => a.map(java.sql.Timestamp.valueOf)
-        case a: Array[java.time.LocalTime] => a.map(java.sql.Time.valueOf)
+        case a: Array[BigDecimal] => a.map { case null => null case x => x.bigDecimal }
+        case a: Array[BigInt] => a.map { case null => null case x => x.bigInteger }
+        case a: Array[java.util.Date] => a.map { case null => null case d => new java.sql.Timestamp(d.getTime) }
+        case a: Array[java.util.Calendar] => a.map { case null => null case c => new java.sql.Timestamp(c.getTime.getTime) }
+        case a: Array[java.time.LocalDate] => a.map { case null => null case d => java.sql.Date.valueOf(d) }
+        case a: Array[java.time.LocalDateTime] => a.map { case null => null case dt => java.sql.Timestamp.valueOf(dt) }
+        case a: Array[java.time.LocalTime] => a.map { case null => null case t => java.sql.Time.valueOf(t) }
         case a => a
       }
       val conn = st.getConnection
