@@ -306,22 +306,25 @@ trait Query extends QueryBuilder with TypedQuery {
       idx -= 1
     }
     def bindArr(st: java.sql.PreparedStatement, value: Array[_], idx: Int) = {
-      def normalizeArr(arr: Array[_]) = arr match {
-        case a: Array[BigDecimal] => a.map { case null => null case x => x.bigDecimal }
-        case a: Array[BigInt] => a.map { case null => null case x => x.bigInteger }
-        case a: Array[java.util.Date] => a.map { case null => null case d => new java.sql.Timestamp(d.getTime) }
-        case a: Array[java.util.Calendar] => a.map { case null => null case c => new java.sql.Timestamp(c.getTime.getTime) }
-        case a: Array[java.time.LocalDate] => a.map { case null => null case d => java.sql.Date.valueOf(d) }
-        case a: Array[java.time.LocalDateTime] => a.map { case null => null case dt => java.sql.Timestamp.valueOf(dt) }
-        case a: Array[java.time.LocalTime] => a.map { case null => null case t => java.sql.Time.valueOf(t) }
-        case a => a
+      def normalizeArr(arr: Array[_]) = {
+        def n[T](a: Array[T], m: T => Object): Array[Object] = a map { case null => null case x => m(x) }
+        arr match {
+          case a: Array[BigDecimal] => n[BigDecimal](a, _.bigDecimal)
+          case a: Array[BigInt] => n[BigInt](a, _.bigInteger)
+          case a: Array[java.util.Date] => n[java.util.Date](a, d => new java.sql.Timestamp(d.getTime))
+          case a: Array[java.util.Calendar] => n[java.util.Calendar](a, c => new java.sql.Timestamp(c.getTime.getTime))
+          case a: Array[java.time.LocalDate] => n[java.time.LocalDate](a, java.sql.Date.valueOf)
+          case a: Array[java.time.LocalDateTime] => n[java.time.LocalDateTime](a, java.sql.Timestamp.valueOf)
+          case a: Array[java.time.LocalTime] => n[java.time.LocalTime](a, java.sql.Time.valueOf)
+          case a => a.asInstanceOf[Array[Object]]
+        }
       }
       val conn = st.getConnection
       val vendor = env.dialect(SQLVendorExpr())
       val arrayScalaType = Manifest.classType(value.getClass.getComponentType).toString
       val arraySqlType = env.metadata
         .to_sql_type(vendor, env.metadata.from_jdbc_type(TypeMapper.scalaToJdbc(arrayScalaType)))
-      val bv = conn.createArrayOf(arraySqlType, normalizeArr(value).asInstanceOf[Array[Object]])
+      val bv = conn.createArrayOf(arraySqlType, normalizeArr(value))
       st.setArray(idx, bv)
     }
 
