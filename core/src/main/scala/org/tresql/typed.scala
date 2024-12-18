@@ -3,11 +3,11 @@ package org.tresql
 import scala.language.higherKinds
 
 trait Typed { this: RowLike =>
-  def typed(columnIndex: Int, manifestName: String): Any = manifestName match {
-    case "Int"                        => int(columnIndex)
-    case "Long"                       => long(columnIndex)
-    case "Double"                     => double(columnIndex)
-    case "Boolean"                    => boolean(columnIndex)
+  def typedPf(columnIndex: Int): PartialFunction[String, Any] = {
+    case "Int" | "int"                => int(columnIndex)
+    case "Long" | "long"              => long(columnIndex)
+    case "Double" | "double"          => double(columnIndex)
+    case "Boolean" | "boolean"        => boolean(columnIndex)
     case "scala.math.BigDecimal"      => bigdecimal(columnIndex)
     case "scala.math.BigInt"          => bigint(columnIndex)
     case "java.lang.String"           => string(columnIndex)
@@ -30,8 +30,9 @@ trait Typed { this: RowLike =>
     case "java.sql.Blob"              => blob(columnIndex)
     case "java.sql.Clob"              => clob(columnIndex)
     case "java.sql.Array"             => array(columnIndex)
-    case _                            => apply(columnIndex)
   }
+  def typed(columnIndex: Int, manifestName: String): Any =
+    (typedPf(columnIndex) orElse ({ case _ => apply(columnIndex) }: PartialFunction[String, Any]))(manifestName)
 
   def typed[T](columnIndex: Int)(implicit m: Manifest[T]): T = m.toString match {
     case x if x.startsWith("scala.Tuple") =>
