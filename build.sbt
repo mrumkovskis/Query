@@ -103,7 +103,7 @@ lazy val tresql = (project in file("."))
       val borerV    = scalaVersion.value match {
         case v if v startsWith "2.12" => "1.7.2"
         case v if v startsWith "2.13" => "1.8.0"
-        case v if v startsWith "3"    => "1.14.1"
+        case v if v startsWith "3"    => "1.15.0"
       }
       Seq(
         "org.scalatest" %% "scalatest"        % "3.2.19"  %  Test,
