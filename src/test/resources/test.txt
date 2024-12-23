@@ -140,6 +140,7 @@ emp{ename "n"}#(1) --> [["ADAMS"], ["ALLEN"], ["BLAKE"], ["CLARK"], ["FORD"], ["
 emp{ename "select"}#(1) --> [["ADAMS"], ["ALLEN"], ["BLAKE"], ["CLARK"], ["FORD"], ["JAMES"], ["JONES"], ["KING"], ["MARTIN"], ["MILLER"], ["SCOTT"], ["SMITH"], ["TURNER"], ["WARD"]]
 emp{ename 'select'}#(1) --> [["ADAMS"], ["ALLEN"], ["BLAKE"], ["CLARK"], ["FORD"], ["JAMES"], ["JONES"], ["KING"], ["MARTIN"], ["MILLER"], ["SCOTT"], ["SMITH"], ["TURNER"], ["WARD"]]
 emp/dept[10] {dname || ',' || ename name}#(1) --> [["ACCOUNTING,CLARK"], ["ACCOUNTING,KING"], ["ACCOUNTING,MILLER"]]
+dept[dname = 'ACCOUNTING'] {loc 'dept loc'} --> [["NEW YORK"]]
 
 //select in column clause
 emp[ename ~~ ?]{ename, (dept[?]{dname}) dname, (dept[?]{dname}) dname1} --> 'KIN%; 10; 20 --> [["KING", "ACCOUNTING", "RESEARCH"]]
