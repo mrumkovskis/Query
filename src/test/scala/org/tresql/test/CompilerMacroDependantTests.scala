@@ -491,6 +491,17 @@ class CompilerMacroDependantTests extends AnyFunSuite with CompilerMacroDependan
       val r: Result[RowLike] = s.getResultSet
       r.toListOfVectors
     }
+
+    //string escape syntax tests
+    assertResult("""start'"'end""") {tresql""""start'""'end""""}
+    assertResult("""start"'"end""") {tresql"""'start"''"end'"""}
+    val p: QueryParser = new QueryParser(null, null)
+    assertResult("""start'"'end"""){
+      Query(p.parseExp(""""start'""'end"""").tresql).unique[String]
+    }
+    assertResult("""start"'"end"""){
+      Query(p.parseExp("""'start"''"end'""").tresql).unique[String]
+    }
   }
 
   override def ort(implicit resources: Resources) = {

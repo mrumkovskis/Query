@@ -40,7 +40,9 @@ sealed trait Const extends Exp {
 }
 case class IntConst(value: Int) extends Const
 case class StringConst(value: String) extends Const {
-  override def tresql: String = if (value.contains("'")) "\"" + value + "\"" else "'" + value + "'"
+  override def tresql: String =
+    if (value.contains("'")) "\"" + value.replace("\"", "\"\"") + "\""
+    else "'" + value.replace("'", "''") + "'"
 }
 case class BigDecimalConst(value: BigDecimal) extends Const
 case class BooleanConst(value: Boolean) extends Const

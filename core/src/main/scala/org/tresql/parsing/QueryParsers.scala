@@ -35,8 +35,11 @@ trait QueryParsers extends JavaTokenParsers with MemParsers with ExpTransformer 
   //besides standart whitespace symbols consider as a whitespace also comments in form /* comment */ and //comment
   override val whiteSpace = """([\h\v]*+(/\*(.|[\h\v])*?\*/)?(//.*+(\n|$))?)+"""r
 
-  override def stringLiteral: MemParser[String] = ("""("[^"]*+")|('[^']*+')"""r) ^^ {
-    case s => s.substring(1, s.length - 1)
+  override def stringLiteral: MemParser[String] = ("""("(?:[^"]|"")*+")|('(?:[^']|'')*+')""".r) ^^ {
+    case s =>
+      val doubleQuotes = s.startsWith("\"")
+      val s1 = s.substring(1, s.length - 1)
+      if (doubleQuotes) s1.replace("\"\"", "\"") else s1.replace("''", "'")
   } named "string-literal"
 
   override def ident: MemParser[String] = super.ident ^? ({ case x if !(reserved contains x) => x },
