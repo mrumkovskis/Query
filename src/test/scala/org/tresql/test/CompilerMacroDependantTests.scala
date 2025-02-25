@@ -169,6 +169,10 @@ class CompilerMacroDependantTests extends AnyFunSuite with CompilerMacroDependan
       (Query(st).list[Time].map(_.toString), Query(st).list[LocalTime].map(_.toString))
     }
 
+    assertResult("john@tresql.org") {
+      Query("|contact_db:contact[name = ?]{email}", ContactDbBindValue("John")).unique[String]
+    }
+
     implicit def convertRowLiketoPoha[T <: Poha](r: RowLike, m: Manifest[T]): T = m.toString match {
       case s if s.contains("Car") => Car(r.i("nr"), r.s("name")).asInstanceOf[T]
       case s if s.contains("Tyre") => Tyre(r.i("nr"), r.s("brand")).asInstanceOf[T]

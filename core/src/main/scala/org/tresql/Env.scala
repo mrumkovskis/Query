@@ -172,6 +172,9 @@ private [tresql] class Env(_provider: EnvProvider, resources: Resources, val db:
   override def metadata = db.map(get_res.extraResources(_).metadata).getOrElse(get_res.metadata)
   /** for performance reasons dialect is val, so it does not need to be lifted on every call */
   override val dialect: CoreTypes.Dialect = liftDialect(db.map(get_res.extraResources(_).dialect).getOrElse(get_res.dialect))
+  /** for performance reasons toBindableValue is val, so it does not need to be lifted on every call */
+  override val toBindableValue: PartialFunction[Any, Any] =
+    liftToBindableValue(db.map(get_res.extraResources(_).toBindableValue).getOrElse(get_res.toBindableValue))
   override def idExpr = db.map(get_res.extraResources(_).idExpr).getOrElse(get_res.idExpr)
   override def queryTimeout: Int = db.map(get_res.extraResources(_).queryTimeout).getOrElse(get_res.queryTimeout)
   override def fetchSize: Int = db.map(get_res.extraResources(_).fetchSize).getOrElse(get_res.fetchSize)
@@ -198,6 +201,8 @@ private [tresql] class Env(_provider: EnvProvider, resources: Resources, val db:
 
   protected def liftDialect(dialect: CoreTypes.Dialect) =
     if (dialect == null) null else dialect orElse defaultDialect
+  protected def liftToBindableValue(tbv: PartialFunction[Any, Any]) =
+    if (tbv == null) defaultToBindableValue else tbv orElse defaultToBindableValue
 
   //meta data methods
   override def table(name: String) = metadata.table(name)
@@ -223,6 +228,7 @@ private [tresql] class Env(_provider: EnvProvider, resources: Resources, val db:
 final case class ResourcesTemplate(override val conn: java.sql.Connection,
                                    override val metadata: Metadata,
                                    override val dialect: CoreTypes.Dialect,
+                                   override val toBindableValue: PartialFunction[Any, Any],
                                    override val idExpr: String => String,
                                    override val queryTimeout: Int,
                                    override val fetchSize: Int,
@@ -236,7 +242,7 @@ final case class ResourcesTemplate(override val conn: java.sql.Connection,
                                    macros: Any = null) extends Resources {
 
   private [tresql] def this(res: Resources) = this(
-    res.conn, res.metadata, res.dialect, res.idExpr, res.queryTimeout,
+    res.conn, res.metadata, res.dialect, res.toBindableValue, res.idExpr, res.queryTimeout,
     res.fetchSize, res.maxResultSize, res.recursiveStackDepth, res.params, res.extraResources,
     res.logger, res.cache, res.bindVarLogFilter)
 
@@ -279,6 +285,7 @@ trait ThreadLocalResources extends Resources {
   override def conn = threadResources.conn
   override def metadata = threadResources.metadata
   override def dialect = threadResources.dialect
+  override def toBindableValue: PartialFunction[Any, Any] = threadResources.toBindableValue
   override def idExpr = threadResources.idExpr
   override def queryTimeout = threadResources.queryTimeout
   override def fetchSize = threadResources.fetchSize
@@ -307,6 +314,7 @@ trait ThreadLocalResources extends Resources {
   def conn_=(conn: java.sql.Connection) = setProp(_.withConn(conn))
   def metadata_=(metadata: Metadata) = setProp(_.withMetadata(metadata))
   def dialect_=(dialect: CoreTypes.Dialect) = setProp(_.withDialect(dialect))
+  def toBindableValue_=(tbv: PartialFunction[Any, Any]) = setProp(_.withToBindableValue(tbv))
   def idExpr_=(idExpr: String => String) = setProp(_.withIdExpr(idExpr))
   def recursiveStackDepth_=(depth: Int) = setProp(_.withRecursiveStackDepth(depth))
   def queryTimeout_=(timeout: Int) =  setProp(_.withQueryTimeout(timeout))
@@ -331,6 +339,7 @@ trait Resources extends MacroResources with CacheResources with Logging {
                                           override val conn: java.sql.Connection,
                                           override val metadata: Metadata,
                                           override val dialect: CoreTypes.Dialect,
+                                          override val toBindableValue: PartialFunction[Any, Any],
                                           override val idExpr: String => String,
                                           override val queryTimeout: Int,
                                           override val fetchSize: Int,
@@ -352,7 +361,7 @@ trait Resources extends MacroResources with CacheResources with Logging {
     override def invokeBuilderDeferredMacro(name: String, builder: QueryBuilder, args: List[Exp]): Expr =
       macros.invokeBuilderDeferredMacro(name, builder, args)
     override def toString = s"Resources_(conn = $conn, " +
-      s"metadata = $metadata, dialect = $dialect, idExpr = $idExpr, " +
+      s"metadata = $metadata, dialect = $dialect, toBindableValue = $toBindableValue, idExpr = $idExpr, " +
       s"queryTimeout = $queryTimeout, fetchSize = $fetchSize, " +
       s"maxResultSize = $maxResultSize, recursiveStackDepth = $recursiveStackDepth, cache = $cache" +
       s"logger =$logger, bindVarLogFilter = $bindVarLogFilter" +
@@ -364,6 +373,7 @@ trait Resources extends MacroResources with CacheResources with Logging {
   def conn: java.sql.Connection = null
   def metadata: Metadata = null
   def dialect: CoreTypes.Dialect = null
+  def toBindableValue: PartialFunction[Any, Any] = null
   def idExpr: String => String = s => "nextval('" + s + "')"
   def queryTimeout = 0
   def fetchSize = 0
@@ -382,6 +392,7 @@ trait Resources extends MacroResources with CacheResources with Logging {
   def withConn(conn: java.sql.Connection): Resources = copyResources.copy(conn = conn)
   def withMetadata(metadata: Metadata): Resources = copyResources.copy(metadata = metadata)
   def withDialect(dialect: CoreTypes.Dialect): Resources = copyResources.copy(dialect = dialect)
+  def withToBindableValue(tbv: PartialFunction[Any, Any]) = copyResources.copy(toBindableValue = tbv)
   def withIdExpr(idExpr: String => String): Resources = copyResources.copy(idExpr = idExpr)
   def withQueryTimeout(queryTimeout: Int): Resources = copyResources.copy(queryTimeout = queryTimeout)
   def withFetchSize(fetchSize: Int): Resources = copyResources.copy(fetchSize = fetchSize)
@@ -400,11 +411,13 @@ trait Resources extends MacroResources with CacheResources with Logging {
     copyResources.copy(extraResources = extraResources ++ Map(name -> updater(extraResources(name))))
 
   protected def copyResources: Resources#Resources_ =
-    Resources_(conn, metadata, dialect, idExpr, queryTimeout,
+    Resources_(conn, metadata, dialect, toBindableValue, idExpr, queryTimeout,
       fetchSize, maxResultSize, recursiveStackDepth, cache, logger, bindVarLogFilter,
       params, extraResources, this)
 
   protected def defaultDialect: CoreTypes.Dialect = { case e => e.defaultSQL }
+
+  protected def defaultToBindableValue: PartialFunction[Any, Any] = { case v => v }
 }
 
 trait MacroResources {

@@ -67,6 +67,7 @@ class QueryTest extends AnyFunSuite with BeforeAndAfterAll {
       .withDialect(hsqlDialect orElse {
         case f: QueryBuilder#FunExpr if f.name == "current_time" && f.params.isEmpty => "current_time"
       })
+      .withToBindableValue({ case ContactDbBindValue(v) => v })
       .withIdExpr(_ => "nextval('seq1')")
       .withMacros(macro1)
       .withLogger((msg, _, topic) => if (topic != LogTopic.sql_with_params) println (msg))
@@ -471,6 +472,8 @@ object TresqlResultBorerElementTranscoder {
     case x => x
   }
 }
+
+case class ContactDbBindValue(value: String)
 
 object ConsoleResources {
   //used in console

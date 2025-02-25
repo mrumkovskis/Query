@@ -328,13 +328,13 @@ trait Query extends QueryBuilder with TypedQuery {
       st.setArray(idx, bv)
     }
 
-    bindVariables.foreach { case (arrb, v) => bindVar(arrb, v) }
+    bindVariables.foreach { case (arrb, v) => bindVar(arrb, env.toBindableValue(v)) }
   }
 
   private def registerOutPar(st: CallableStatement, par: OutPar, idx: Int) = {
     import java.sql.Types._
     par.idx = idx
-    par.value match {
+    env.toBindableValue(par.value) match {
       case null => st.registerOutParameter(idx, NULL)
       case i: Int => st.registerOutParameter(idx, INTEGER)
       case l: Long => st.registerOutParameter(idx, BIGINT)

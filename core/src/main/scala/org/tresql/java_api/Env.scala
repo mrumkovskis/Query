@@ -28,6 +28,8 @@ trait ThreadLocalResources extends TLR {
   def setConnection(c: Connection): Unit = { conn = c }
   def getDialect: Dialect = dialect
   def setDialect(d: Dialect): Unit = { dialect = d }
+  def getToBindableValue: PartialFunction[Any, Any] = toBindableValue
+  def setToBindableValue(tbv: PartialFunction[Any, Any]) = { toBindableValue = tbv }
   def getIdExprFunc: IdExprFunc = new IdExprFunc {
     override def getIdExpr(table: String) = idExpr(table)
   }
